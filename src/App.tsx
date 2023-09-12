@@ -1,15 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import './App.css'
 import { UsersList } from './components/UsersList'
-import { SortBy, type User } from './types.d'
+import { SortBy } from './types.d'
+import useUsers from './hooks/useUsers'
+import { Results } from './components/Results'
 
 function App () {
-  const [users, setUsers] = useState<User[]>([])
+  const { users, refetch, fetchNextPage, hasNextPage } = useUsers()
+
   const [showColors, setShowColors] = useState(false)
   const [sorting, setSorting] = useState<SortBy>(SortBy.NONE)
   const [filterCountry, setFilterCountry] = useState<string | null>(null)
 
-  const originalUsers = useRef<User[]>([])
+  // const originalUsers = useRef<User[]>([])
 
   const toggleColors = () => {
     setShowColors(!showColors)
@@ -21,30 +24,16 @@ function App () {
   }
 
   const handleDelete = (email: string) => {
-    const filteredUsers = users.filter((user) => user.email !== email)
-    setUsers(filteredUsers)
+    
   }
 
   const handleReset = () => {
-    setUsers(originalUsers.current)
+    void refetch()
   }
 
   const handleChangeSort = (sort: SortBy) => {
     setSorting(sort)
   }
-
-  useEffect(() => {
-    fetch('https://randomuser.me/api/?results=100')
-      .then(async res => await res.json())
-      .then(res => {
-        setUsers(res.results)
-        originalUsers.current = res.results
-      })
-
-      .catch(err => {
-        console.error(err)
-      })
-  }, [])
 
   const filteredUsers = useMemo(() => {
     return typeof filterCountry === 'string' && filterCountry.length > 0
@@ -79,6 +68,7 @@ function App () {
   return (
     <div className="App">
       <h1> Prueba Tecnica</h1>
+      <Results />
       <header className='header'>
         <button onClick={toggleColors}>
           Colorear Filas
@@ -94,8 +84,10 @@ function App () {
         }} />
       </header>
       <main>
-        <UsersList changeSorting={handleChangeSort} users={sortedUsers} showColors={showColors} deleteUser={handleDelete}/>
+        <UsersList changeSorting={handleChangeSort} users={sortedUsers} showColors={showColors} deleteUser={handleDelete} />
       </main>
+
+      {hasNextPage === true ? <button onClick={() => { void fetchNextPage() }}> Cargar mas resultados </button> : ''}
     </div>
   )
 }
